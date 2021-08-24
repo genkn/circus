@@ -1,0 +1,14 @@
+{
+  "extends": "../../tsconfig.json",
+  "compilerOptions": {
+    "lib": [
+      "dom",
+      "es2017"
+    ],
+    "baseUrl": "./src",
+    "jsx": "react",
+    "allowJs": true,
+    "strict": false,
+    "paths": {}
+  }
+}
