@@ -346,7 +346,7 @@ export default class VRGLProgram extends ShaderProgram {
     this.uRayIntensityCoef(1.0 / intensity / quality);
   }
 
-  private camera: Camera = createCamera([0, 0, 0], [0, 0, 1], 1.0, [0, 1, 0]);
+  private camera: Camera = createCamera([0, 0, 0], [0, 0, 1], [0, 1, 0], [1, 1]);
 
   public setCamera(camera: Camera) {
     this.camera = camera;
@@ -408,7 +408,7 @@ export default class VRGLProgram extends ShaderProgram {
 
     // Projection(Model/View)
     const projectionMatrix = new Matrix4().fromArray(
-      createPojectionMatrix(this.camera)
+      createPojectionMatrix(this.camera, this.mmInNdc)
     );
     this.uProjectionMatrix(projectionMatrix.toArray());
 

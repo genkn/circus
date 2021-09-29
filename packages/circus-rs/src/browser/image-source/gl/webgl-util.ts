@@ -29,19 +29,19 @@ export interface Camera {
     position: Vector3;
     target: Vector3;
     up: Vector3;
-    zoom: number;
+    viewport: [number, number];
 }
 
 export function createCamera(
     t: number[] = [256, 256, 66],
     p: number[] = [1000, 1000, 1000],
-    zoom: number = 0.5,
     u: number[] = [0, 1, 0],
+    viewport: [number, number] = [256, 256]
 ): Camera {
     const target = new Vector3().fromArray(t);
     const position = new Vector3().fromArray(p);
     const up = new Vector3().fromArray(u);
-    return { position, target, up, zoom };
+    return { position, target, up, viewport };
 }
 
 export function createCameraToLookSection(
@@ -51,11 +51,7 @@ export function createCameraToLookSection(
 ): Camera {
     const { origin, xAxis, yAxis } = vectorizeSection(section);
     const [x, y, z] = voxelCount;
-    const volumeSizeMm = new Vector3(
-        voxelCount[0] * voxelSize[0],
-        voxelCount[1] * voxelSize[1],
-        voxelCount[2] * voxelSize[2]
-    );
+    const [w, h, d] = voxelSize;
 
     // The camera target is The center of the section.
     const target = origin
@@ -66,13 +62,13 @@ export function createCameraToLookSection(
     // Ensure the camera position is outside the (sub)volume.
     // And the position is preferably close to the volume to reduce the cost in the fragment shader.
     const distancesToEachVertex = [
-        new Vector3(x, 0, 0),
-        new Vector3(0, y, 0),
-        new Vector3(0, 0, z),
-        new Vector3(x, y, 0),
-        new Vector3(0, y, z),
-        new Vector3(x, 0, z),
-        new Vector3(x, y, z),
+        new Vector3(x * w, 0, 0),
+        new Vector3(0, y * h, 0),
+        new Vector3(0, 0, z * d),
+        new Vector3(x * w, y * h, 0),
+        new Vector3(0, y * h, z * d),
+        new Vector3(x * w, 0, z * d),
+        new Vector3(x * w, y * h, z * d),
     ].map(v => v.distanceTo(target));
 
     const farEnough = Math.max(...distancesToEachVertex);
@@ -86,15 +82,10 @@ export function createCameraToLookSection(
 
     const up = yAxis.clone().normalize();
 
-    // Determine camera zoom from viewport diagonal length
-    const origDiagonalLength = new Vector2(volumeSizeMm.x, volumeSizeMm.y).length();
-    const currentDiagonalLength = new Vector3()
-        .addVectors(xAxis, yAxis)
-        .length();
-    const zoom = origDiagonalLength / currentDiagonalLength;
+    const viewport: [number, number] = [xAxis.length(), yAxis.length()];
 
     // Return the camera which is adjusted the coordinate system to gl coodinate system.
-    return { position, target, up, zoom };
+    return { position, target, up, viewport };
 }
 
 type ShaderType = 'fragment' | 'vertex';
@@ -149,17 +140,25 @@ export function createProgram(
     return program;
 }
 
-export function createPojectionMatrix(camera: Camera) {
+export function createPojectionMatrix(camera: Camera, scaleMmToNDC: number) {
     const near = 0.001;
     const far = 100; // far 1.5
 
     const projectionMatrix = mat4.create();
+
+    const [left, right, bottom, top] = [
+        -camera.viewport[0] * 0.5 * scaleMmToNDC,
+        camera.viewport[0] * 0.5 * scaleMmToNDC,
+        -camera.viewport[1] * 0.5 * scaleMmToNDC,
+        camera.viewport[1] * 0.5 * scaleMmToNDC
+    ];
+
     mat4.ortho(
         projectionMatrix,
-        -0.5 / camera.zoom,
-        0.5 / camera.zoom,
-        -0.5 / camera.zoom,
-        0.5 / camera.zoom,
+        left,
+        right,
+        bottom,
+        top,
         near,
         far
     );

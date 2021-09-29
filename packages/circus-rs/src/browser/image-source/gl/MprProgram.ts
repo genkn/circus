@@ -173,7 +173,7 @@ export default class MprProgram extends ShaderProgram {
     this.uBackground([r, g, b, a]);
   }
 
-  private camera: Camera = createCamera([0, 0, 0], [0, 0, 1], 1.0, [0, 1, 0]);
+  private camera: Camera = createCamera([0, 0, 0], [0, 0, 1], [0, 1, 0], [1, 1]);
 
   public setCamera(camera: Camera) {
     this.camera = camera;
@@ -198,7 +198,7 @@ export default class MprProgram extends ShaderProgram {
 
     // Projection(Model/View)
     const projectionMatrix = new Matrix4().fromArray(
-      createPojectionMatrix(this.camera)
+      createPojectionMatrix(this.camera, this.mmInNdc)
     );
     this.uProjectionMatrix(projectionMatrix.toArray());
 
